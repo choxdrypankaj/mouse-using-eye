@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Mouse Using Eye — Simple Page</title>
+    <style>
+        :root{
+            --bg:#0f1724; --card:#0b1220; --text:#e6eef8; --accent:#60a5fa;
+        }
+        html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+        body{display:grid;place-items:center;background:linear-gradient(180deg,#071022, #0b1530);color:var(--text);}
+        .card{width:min(680px,92vw);padding:28px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12));box-shadow:0 6px 30px rgba(2,6,23,0.6);text-align:center}
+        h1{margin:0 0 10px;font-size:clamp(20px,3vw,28px);letter-spacing:-0.02em}
+        p{margin:0 0 18px;color: #bcd3ff88}
+        .eye-wrap{display:flex;justify-content:center;gap:18px;flex-wrap:wrap}
+        svg.eye{width:220px;height:220px;max-width:48vw;touch-action:none;cursor:none}
+        .hint{font-size:13px;color:#a9c2ff66;margin-top:12px}
+        footer{margin-top:14px;font-size:12px;color:#9fb7ff66}
+        .btn{display:inline-block;margin-top:10px;padding:8px 12px;border-radius:8px;background:linear-gradient(90deg,#1f6feb,#2dd4bf);color:#052029;text-decoration:none;font-weight:600}
+    </style>
+</head>
+<body>
+    <main class="card" role="main">
+        <h1>Eye that follows your mouse</h1>
+        <p>Move your cursor (or touch) over the eye — the pupil will follow.</p>
+
+        <div class="eye-wrap" aria-hidden="false">
+            <!-- SVG eye: white sclera, dark iris, black pupil that moves -->
+            <svg class="eye" viewBox="0 0 200 200" id="eye1" role="img" aria-label="Interactive eye">
+                <defs>
+                    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.35"/>
+                    </filter>
+                </defs>
+
+                <!-- sclera -->
+                <ellipse cx="100" cy="100" rx="86" ry="60" fill="#fff" stroke="#d6e8ff33" stroke-width="2" filter="url(#shadow)"/>
+                <!-- iris (ring) -->
+                <circle cx="100" cy="100" r="34" fill="#0f1724"/>
+                <circle cx="100" cy="100" r="30" fill="#69a0ff"/>
+                <!-- pupil group (this will be translated) -->
+                <g id="pupilGroup">
+                    <circle id="pupil" cx="100" cy="100" r="14" fill="#020617"/>
+                    <circle cx="92" cy="92" r="5.2" fill="#ffffffaa"/>
+                </g>
+            </svg>
+        </div>
+
+        <div class="hint">Tip: try from different angles or tap on mobile.</div>
+        <footer>Simple demo • No libraries</footer>
+    </main>
+
+    <script>
+        // Eye follow script
+        (function(){
+            const svg = document.getElementById('eye1');
+            const pupilGroup = document.getElementById('pupilGroup');
+            const pupil = document.getElementById('pupil');
+
+            // sizes consistent with viewBox
+            const eyeCenter = { x: 100, y: 100 };
+            const eyeRadius = 34;      // iris radius from SVG
+            const pupilRadius = 14;    // pupil radius from SVG
+            const maxOffset = eyeRadius - pupilRadius - 2; // limit movement
+
+            function onPointerMove(e){
+                // get client coordinates
+                const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+                const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+
+                // convert to SVG coordinates
+                const pt = svg.createSVGPoint();
+                pt.x = clientX; pt.y = clientY;
+                const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+                const dx = svgP.x - eyeCenter.x;
+                const dy = svgP.y - eyeCenter.y;
+                const dist = Math.hypot(dx, dy) || 0.0001;
+                const ratio = Math.min(1, maxOffset / dist);
+                const tx = dx * ratio;
+                const ty = dy * ratio;
+
+                pupilGroup.setAttribute('transform', `translate(${tx},${ty})`);
+            }
+
+            // reset to center on leave
+            function reset(){ pupilGroup.setAttribute('transform','translate(0,0)'); }
+
+            // events
+            window.addEventListener('pointermove', onPointerMove, {passive:true});
+            window.addEventListener('touchmove', onPointerMove, {passive:true});
+            window.addEventListener('pointerleave', reset);
+            window.addEventListener('touchend', reset);
+            window.addEventListener('touchcancel', reset);
+        })();
+    </script>
+</body>
+</html>
